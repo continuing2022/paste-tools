@@ -1,6 +1,7 @@
 import AppKit
 import ClipboardHistory
 import Foundation
+import UniformTypeIdentifiers
 
 /// Polls the system pasteboard and maps changes to `ClipboardObservation`.
 @MainActor
@@ -41,17 +42,22 @@ final class SystemClipboardMonitor {
     static func observation(from pasteboard: NSPasteboard) -> ClipboardObservation {
         let text = pasteboard.string(forType: .string)
         let imageData = imageData(from: pasteboard)
-        // Image wins when both are present (CONTEXT.md). Image *preview* is a later ticket;
-        // capturing image bytes here keeps mixed pasteboards from becoming text entries.
+        // Image wins when both are present (CONTEXT.md / ClipboardObservation.normalized).
         return .normalized(text: text, imageData: imageData)
     }
 
+    private static let imagePasteboardTypes: [NSPasteboard.PasteboardType] = [
+        .png,
+        .tiff,
+        NSPasteboard.PasteboardType(UTType.jpeg.identifier),
+        NSPasteboard.PasteboardType(UTType.gif.identifier),
+    ]
+
     private static func imageData(from pasteboard: NSPasteboard) -> Data? {
-        if let png = pasteboard.data(forType: .png) {
-            return png
-        }
-        if let tiff = pasteboard.data(forType: .tiff) {
-            return tiff
+        for type in imagePasteboardTypes {
+            if let data = pasteboard.data(forType: type), !data.isEmpty {
+                return data
+            }
         }
         return nil
     }
