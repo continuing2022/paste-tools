@@ -89,6 +89,15 @@ public final class ClipboardHistory: @unchecked Sendable {
         persist()
     }
 
+    /// Moves an existing clipboard entry to newest without changing its identity.
+    /// Used so a 回贴 write-back observation hits consecutive dedup instead of inserting.
+    public func refreshAsNewest(id: UUID) {
+        guard let index = _entries.firstIndex(where: { $0.id == id }) else { return }
+        let entry = _entries.remove(at: index)
+        _entries.insert(entry, at: 0)
+        persist()
+    }
+
     private func prepend(content: ClipboardEntryContent) {
         if let newest = _entries.first, newest.content == content {
             _entries.removeFirst()

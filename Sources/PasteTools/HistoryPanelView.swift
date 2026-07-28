@@ -4,6 +4,7 @@ import SwiftUI
 
 struct HistoryPanelView: View {
     let entries: [ClipboardEntry]
+    let onRepaste: (ClipboardEntry) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -44,7 +45,15 @@ struct HistoryPanelView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(entries) { entry in
-                    entryRow(entry)
+                    Button {
+                        onRepaste(entry)
+                    } label: {
+                        entryRow(entry)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("回贴此剪贴板条目")
                     Divider()
                 }
             }
@@ -61,11 +70,12 @@ struct HistoryPanelView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .accessibilityLabel("文本剪贴板条目")
+                .accessibilityLabel("文本剪贴板条目，点选回贴")
         case .image(let data):
             ImageClipboardEntryPreview(imageData: data)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
+                .accessibilityLabel("图片剪贴板条目，点选回贴")
         }
     }
 }

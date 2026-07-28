@@ -59,7 +59,13 @@ final class FloatingWindowsController {
         guard let historyPanel,
               let host = historyPanel.contentView as? NSHostingView<HistoryPanelView>
         else { return }
-        host.rootView = HistoryPanelView(entries: session.entries)
+        host.rootView = makeHistoryPanelView()
+    }
+
+    private func makeHistoryPanelView() -> HistoryPanelView {
+        HistoryPanelView(entries: session.entries) { [weak self] entry in
+            self?.session.repaste(entry)
+        }
     }
 
     private func makeBallPanel() -> NSPanel {
@@ -111,7 +117,7 @@ final class FloatingWindowsController {
         panel.titlebarAppearsTransparent = true
         panel.isReleasedWhenClosed = false
 
-        let host = NSHostingView(rootView: HistoryPanelView(entries: session.entries))
+        let host = NSHostingView(rootView: makeHistoryPanelView())
         panel.contentView = host
 
         let delegate = HistoryPanelDelegate(onClose: { [weak self] in

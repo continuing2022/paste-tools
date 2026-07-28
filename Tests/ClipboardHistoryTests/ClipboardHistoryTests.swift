@@ -108,4 +108,22 @@ struct ClipboardHistoryTests {
         #expect(history.entries.count == 2)
         #expect(history.entries.map(\.content) == [.text("chosen"), .text("first")])
     }
+
+    @Test("refreshing an older clipboard entry as newest preserves count and identity")
+    func refreshingOlderClipboardEntryAsNewestPreservesCountAndIdentity() {
+        let history = ClipboardHistory(store: InMemoryClipboardHistoryStore())
+        history.observe(.text("a"))
+        history.observe(.text("b"))
+        history.observe(.text("c"))
+        let olderId = history.entries[1].id
+        history.refreshAsNewest(id: olderId)
+        #expect(history.entries.count == 3)
+        #expect(history.entries.map(\.content) == [.text("b"), .text("c"), .text("a")])
+        #expect(history.entries[0].id == olderId)
+
+        history.observe(.text("b"))
+        #expect(history.entries.count == 3)
+        #expect(history.entries.map(\.content) == [.text("b"), .text("c"), .text("a")])
+        #expect(history.entries[0].id == olderId)
+    }
 }

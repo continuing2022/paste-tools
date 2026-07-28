@@ -31,6 +31,30 @@ final class PasteToolsSession: ObservableObject {
         isHistoryPanelOpen = open
     }
 
+    /// 回贴: write entry → system clipboard → paste → close history panel.
+    /// Entry is refreshed as newest first so the write-back observation hits consecutive dedup.
+    func repaste(_ entry: ClipboardEntry) {
+        history.refreshAsNewest(id: entry.id)
+        entries = history.entries
+
+        do {
+            try Repaste.writeToSystemClipboard(entry.content)
+        } catch {
+            Repaste.presentWriteFailureGuidance()
+            return
+        }
+
+        do {
+            try Repaste.postPasteKeystroke()
+            setHistoryPanelOpen(false)
+        } catch RepasteError.accessibilityPermissionRequired {
+            Repaste.presentAccessibilityGuidance()
+        } catch {
+            // Keystroke posting failed for a non-permission reason; content is already on the clipboard.
+            setHistoryPanelOpen(false)
+        }
+    }
+
     private func handle(_ observation: ClipboardObservation) {
         history.observe(observation)
         entries = history.entries
