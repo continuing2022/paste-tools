@@ -9,7 +9,6 @@ final class FloatingWindowsController {
     private var historyPanel: NSPanel?
     private var historyPanelDelegate: HistoryPanelDelegate?
     private var cancellables = Set<AnyCancellable>()
-
     init(session: PasteToolsSession) {
         self.session = session
     }
@@ -63,9 +62,18 @@ final class FloatingWindowsController {
     }
 
     private func makeHistoryPanelView() -> HistoryPanelView {
-        HistoryPanelView(entries: session.entries) { [weak self] entry in
-            self?.session.repaste(entry)
-        }
+        HistoryPanelView(
+            entries: session.entries,
+            onRepaste: { [weak self] entry in
+                self?.session.repaste(entry)
+            },
+            onDeleteEntry: { [weak self] id in
+                self?.session.deleteEntry(id: id)
+            },
+            onClearHistory: { [weak self] in
+                self?.session.clearHistory()
+            }
+        )
     }
 
     private func makeBallPanel() -> NSPanel {
@@ -101,6 +109,7 @@ final class FloatingWindowsController {
 
         return panel
     }
+
 
     private func makeHistoryPanel() -> NSPanel {
         let panel = NSPanel(

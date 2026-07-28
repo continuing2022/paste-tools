@@ -5,14 +5,12 @@ import SwiftUI
 struct HistoryPanelView: View {
     let entries: [ClipboardEntry]
     let onRepaste: (ClipboardEntry) -> Void
+    let onDeleteEntry: (UUID) -> Void
+    let onClearHistory: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("剪贴板历史")
-                .font(.headline)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-
+            header
             Divider()
 
             if entries.isEmpty {
@@ -23,6 +21,25 @@ struct HistoryPanelView: View {
         }
         .frame(width: 320, height: 420)
         .background(.regularMaterial)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("剪贴板历史")
+                .font(.headline)
+            Spacer(minLength: 0)
+            if !entries.isEmpty {
+                Button("清空历史") {
+                    onClearHistory()
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("清空全部剪贴板条目，不影响系统剪贴板")
+                .accessibilityLabel("清空历史")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
     private var emptyState: some View {
@@ -45,15 +62,31 @@ struct HistoryPanelView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(entries) { entry in
-                    Button {
-                        onRepaste(entry)
-                    } label: {
-                        entryRow(entry)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                    HStack(alignment: .center, spacing: 4) {
+                        Button {
+                            onRepaste(entry)
+                        } label: {
+                            entryRow(entry)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("回贴此剪贴板条目")
+
+                        Button {
+                            onDeleteEntry(entry.id)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("删除此剪贴板条目，不影响系统剪贴板")
+                        .accessibilityLabel("删除条目")
+                        .padding(.trailing, 8)
                     }
-                    .buttonStyle(.plain)
-                    .help("回贴此剪贴板条目")
                     Divider()
                 }
             }

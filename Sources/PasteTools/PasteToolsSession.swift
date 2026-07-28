@@ -55,6 +55,18 @@ final class PasteToolsSession: ObservableObject {
         }
     }
 
+    /// 删除条目: remove one clipboard entry from history only (system clipboard unchanged).
+    func deleteEntry(id: UUID) {
+        history.deleteEntry(id: id)
+        entries = history.entries
+    }
+
+    /// 清空历史: remove every clipboard entry (system clipboard unchanged).
+    func clearHistory() {
+        history.clearHistory()
+        entries = history.entries
+    }
+
     private func handle(_ observation: ClipboardObservation) {
         history.observe(observation)
         entries = history.entries
