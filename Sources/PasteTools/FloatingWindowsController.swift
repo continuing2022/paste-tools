@@ -9,6 +9,9 @@ final class FloatingWindowsController {
     private var historyPanel: NSPanel?
     private var historyPanelDelegate: HistoryPanelDelegate?
     private var cancellables = Set<AnyCancellable>()
+    /// Ball frame origin at the start of the current drag (AppKit coords).
+    private var ballDragOrigin: NSPoint?
+
     init(session: PasteToolsSession) {
         self.session = session
     }
@@ -91,9 +94,17 @@ final class FloatingWindowsController {
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
 
-        let ball = FloatingBallView { [weak self] in
-            self?.session.toggleHistoryPanel()
-        }
+        let ball = FloatingBallView(
+            onTap: { [weak self] in
+                self?.session.toggleHistoryPanel()
+            },
+            onDragTranslation: { [weak self] translation in
+                self?.moveBall(bySwiftUITranslation: translation)
+            },
+            onDragEnded: { [weak self] in
+                self?.endBallDrag()
+            }
+        )
         let host = NSHostingView(rootView: ball)
         host.frame = NSRect(x: 0, y: 0, width: 56, height: 56)
         panel.contentView = host
@@ -110,6 +121,32 @@ final class FloatingWindowsController {
         return panel
     }
 
+    private func moveBall(bySwiftUITranslation translation: CGSize) {
+        guard let ballPanel else { return }
+        if ballDragOrigin == nil {
+            ballDragOrigin = ballPanel.frame.origin
+        }
+        guard let origin = ballDragOrigin else { return }
+        // SwiftUI +y is down; AppKit +y is up.
+        var next = NSPoint(
+            x: origin.x + translation.width,
+            y: origin.y - translation.height
+        )
+        if let screen = ballPanel.screen ?? NSScreen.main {
+            let visible = screen.visibleFrame
+            let size = ballPanel.frame.size
+            next.x = min(max(next.x, visible.minX), visible.maxX - size.width)
+            next.y = min(max(next.y, visible.minY), visible.maxY - size.height)
+        }
+        ballPanel.setFrameOrigin(next)
+        if session.isHistoryPanelOpen {
+            positionHistoryPanelNearBall()
+        }
+    }
+
+    private func endBallDrag() {
+        ballDragOrigin = nil
+    }
 
     private func makeHistoryPanel() -> NSPanel {
         let panel = NSPanel(

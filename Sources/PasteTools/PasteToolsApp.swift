@@ -19,6 +19,7 @@ struct PasteToolsApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var session: PasteToolsSession!
     private var windows: FloatingWindowsController!
+    private var globalHotKey: GlobalHotKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -35,6 +36,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let windows = FloatingWindowsController(session: session)
         self.windows = windows
         windows.showFloatingBall()
+
+        // Same hotkey toggles 历史面板 open/closed (including dismiss without 回贴).
+        let hotKey = GlobalHotKey { [weak session] in
+            session?.toggleHistoryPanel()
+        }
+        globalHotKey = hotKey
+        if !hotKey.isRegistered {
+            GlobalHotKey.presentRegistrationFailureGuidance()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

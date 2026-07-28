@@ -16,7 +16,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "PasteTools",
-            dependencies: ["ClipboardHistory"]
+            dependencies: ["ClipboardHistory"],
+            linkerSettings: [
+                .linkedFramework("Carbon"),
+            ]
         ),
         .testTarget(
             name: "ClipboardHistoryTests",
