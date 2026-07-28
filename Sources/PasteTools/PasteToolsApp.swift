@@ -1,38 +1,43 @@
-import SwiftUI
+import AppKit
 import ClipboardHistory
+import SwiftUI
 
 @main
 struct PasteToolsApp: App {
-    private let history: ClipboardHistory
-
-    init() {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let directory = support.appendingPathComponent("PasteTools", isDirectory: true)
-        let storeURL = directory.appendingPathComponent("clipboard-history.json")
-        history = ClipboardHistory(store: FileClipboardHistoryStore(fileURL: storeURL))
-    }
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("Paste Tools") {
-            ContentView(entryCount: history.entries.count)
+        // Floating ball + history panel are AppKit panels owned by AppDelegate.
+        // Settings keeps a SwiftUI scene so the process stays an app.
+        Settings {
+            EmptyView()
         }
-        .defaultSize(width: 320, height: 200)
     }
 }
 
-struct ContentView: View {
-    let entryCount: Int
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var session: PasteToolsSession!
+    private var windows: FloatingWindowsController!
 
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Paste Tools")
-                .font(.title)
-            Text("剪贴板历史骨架")
-                .foregroundStyle(.secondary)
-            Text("当前条目：\(entryCount)")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let directory = support.appendingPathComponent("PasteTools", isDirectory: true)
+        let storeURL = directory.appendingPathComponent("clipboard-history.json")
+        let history = ClipboardHistory(store: FileClipboardHistoryStore(fileURL: storeURL))
+
+        let session = PasteToolsSession(history: history)
+        self.session = session
+        session.start()
+
+        let windows = FloatingWindowsController(session: session)
+        self.windows = windows
+        windows.showFloatingBall()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 }
