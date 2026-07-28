@@ -42,8 +42,24 @@ final class SystemClipboardMonitor {
     static func observation(from pasteboard: NSPasteboard) -> ClipboardObservation {
         let text = pasteboard.string(forType: .string)
         let imageData = imageData(from: pasteboard)
-        // Image wins when both are present (CONTEXT.md / ClipboardObservation.normalized).
-        return .normalized(text: text, imageData: imageData)
+        // Files are ignorable even when a path string is also present (CONTEXT.md).
+        return .normalized(
+            text: text,
+            imageData: imageData,
+            containsFileURL: containsFileURL(pasteboard)
+        )
+    }
+
+    private static func containsFileURL(_ pasteboard: NSPasteboard) -> Bool {
+        if pasteboard.availableType(from: [.fileURL]) != nil {
+            return true
+        }
+        // Legacy Finder filenames pasteboard type.
+        let filenamesType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+        if pasteboard.propertyList(forType: filenamesType) != nil {
+            return true
+        }
+        return false
     }
 
     private static let imagePasteboardTypes: [NSPasteboard.PasteboardType] = [

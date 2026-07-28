@@ -5,8 +5,15 @@ public enum ClipboardObservation: Equatable, Sendable {
     case image(Data)
     case ignorable
 
-    /// Normalizes a single clipboard change: image wins when both are present.
-    public static func normalized(text: String?, imageData: Data?) -> ClipboardObservation {
+    /// Normalizes a single clipboard change: file URLs are ignored; image wins over text.
+    public static func normalized(
+        text: String?,
+        imageData: Data?,
+        containsFileURL: Bool = false
+    ) -> ClipboardObservation {
+        if containsFileURL {
+            return .ignorable
+        }
         if let imageData {
             return .image(imageData)
         }

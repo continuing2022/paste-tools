@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import ClipboardHistory
 import Foundation
+import UniformTypeIdentifiers
 
 enum RepasteError: Error {
     case accessibilityPermissionRequired
@@ -23,15 +24,10 @@ enum Repaste {
                 throw RepasteError.failedToWriteClipboard
             }
         case .image(let data):
-            if let image = NSImage(data: data) {
-                guard pasteboard.writeObjects([image]) else {
-                    throw RepasteError.failedToWriteClipboard
-                }
-            } else if pasteboard.setData(data, forType: .tiff)
-                || pasteboard.setData(data, forType: .png)
-            {
-                return
-            } else {
+            // Write the exact stored bytes so the write-back observation hits consecutive dedup
+            // (NSImage re-encoding would change bytes and create a new 剪贴板条目).
+            let type = pasteboardType(forImageData: data)
+            guard pasteboard.setData(data, forType: type) else {
                 throw RepasteError.failedToWriteClipboard
             }
         }
@@ -82,6 +78,22 @@ enum Repaste {
         alert.alertStyle = .warning
         alert.addButton(withTitle: "好")
         alert.runModal()
+    }
+
+    private static func pasteboardType(forImageData data: Data) -> NSPasteboard.PasteboardType {
+        if data.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+            return .png
+        }
+        if data.starts(with: [0xFF, 0xD8, 0xFF]) {
+            return NSPasteboard.PasteboardType(UTType.jpeg.identifier)
+        }
+        if data.starts(with: [0x47, 0x49, 0x46, 0x38]) {
+            return NSPasteboard.PasteboardType(UTType.gif.identifier)
+        }
+        if data.starts(with: [0x49, 0x49, 0x2A, 0x00]) || data.starts(with: [0x4D, 0x4D, 0x00, 0x2A]) {
+            return .tiff
+        }
+        return .png
     }
 
     private static func openAccessibilitySettings() {

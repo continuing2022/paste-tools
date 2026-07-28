@@ -42,6 +42,15 @@ struct ClipboardHistoryTests {
         #expect(history.entries.map(\.content) == [.image(image)])
     }
 
+    @Test("file URL clipboard changes are ignorable even when a path string is present")
+    func fileURLClipboardChangesAreIgnorableEvenWhenPathStringIsPresent() {
+        let history = ClipboardHistory(store: InMemoryClipboardHistoryStore())
+        history.observe(
+            .normalized(text: "/Users/me/Documents/report.pdf", imageData: nil, containsFileURL: true)
+        )
+        #expect(history.entries.isEmpty)
+    }
+
     @Test("consecutive duplicate content refreshes the newest entry instead of adding")
     func consecutiveDuplicateRefreshesNewestInsteadOfAdding() {
         let history = ClipboardHistory(store: InMemoryClipboardHistoryStore())
